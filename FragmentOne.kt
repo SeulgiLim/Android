@@ -7,101 +7,67 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_one.*
 
-class FragmentOne:Fragment(){
-
-    interface OnDataPassListener {
-        fun onDataPass(data : String?){
-
-        }
-    }
-
-    lateinit var dataPassListener : OnDataPassListener
-
+class FragmentOne : Fragment(){
 
     override fun onAttach(context: Context) {
-        Log.d("life_cycle","F onAttach")
+        Log.d("life_cyccle", "f_onAttach")
         super.onAttach(context)
-        dataPassListener = context as OnDataPassListener
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("life_cycle","F onCreate")
+        Log.d("life_cyccle", "f_onCreate")
         super.onCreate(savedInstanceState)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
-        Log.d("life_cycle", "F onCreateView")
-        // 프라그먼트가 인터페이스를 처음으로 그릴 때 호출된다.
-        // inflater -> 뷰를 그려주는 역할
-        // container -> 부모뷰
 
-        return inflater.inflate(R.layout.fragment_one,container,false)
+        // 프레그먼트가 인터페이스를 처음으로 그릴 때 호출된다.
+        // inflater -> View를 그려주는 역할
+        // container -> 부모 View
+        Log.d("life_cycle", "f_onCreateView")
 
-
-        // return super.onCreateView(inflater, container, savedInstanceState) 삭제
+        return inflater.inflate(R.layout.fragment_one, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        Log.d("life_cycle", "f_onViewCreated")
         super.onViewCreated(view, savedInstanceState)
-        Log.d("life_cycle","F onViewCreated")
-
-        // Activity의 Oncreate에서 했던 작업을 여기서 한다.
-        pass.setOnClickListener {
-            dataPassListener.onDataPass("Good Bye")
-        }
-
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
-        Log.d("life_cycle","F onActivityCreated")
-
-        val data = arguments?.getString("hello")
-        if (data != null) {
-            Log.d("data", data)
-        }
-        // 왜 data 미스매치 뜨지? ㅠㅠㅠㅠㅠㅠ Logcat도 안찍히고
-        // 으아아아아아ㅏ아아아아ㅏ아아아ㅏ아아아
-
+        Log.d("life_cycle", "f_onActivityCreated")
         super.onActivityCreated(savedInstanceState)
     }
 
     override fun onStart() {
-        Log.d("life_cycle","F onStart")
-
+        Log.d("life_cycle", "f_onStart")
         super.onStart()
     }
 
     override fun onResume() {
-        Log.d("life_cycle","F onResume")
-
+        Log.d("life_cycle", "f_onResume")
         super.onResume()
     }
 
     override fun onPause() {
-        Log.d("life_cycle","F onPause")
+        Log.d("life_cycle", "f_onPause")
         super.onPause()
     }
 
     override fun onStop() {
-        Log.d("life_cycle","F onStop")
+        Log.d("life_cycle", "f_onStop")
         super.onStop()
     }
 
     override fun onDestroyView() {
-        Log.d("life_cycle","F onDestroyView")
+        Log.d("life_cycle", "f_onDestroyView")
         super.onDestroyView()
     }
 
-    override fun onDestroy() {
-        Log.d("life_cycle","F onDestroy")
-        super.onDestroy()
+    override fun onDetach() {
+        Log.d("life_cycle", "f_onDetach()")
+        super.onDetach()
     }
-
-
 }
