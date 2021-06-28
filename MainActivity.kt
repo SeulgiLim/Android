@@ -1,135 +1,78 @@
-package fastcampus.aop.part2.chapter06
+package kr.go.mapo.viewpager
 
-import android.annotation.SuppressLint
-import android.media.SoundPool
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.CountDownTimer
-import android.widget.SeekBar
-import android.widget.TextView
+import android.view.View
+import android.view.ViewGroup
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    private val remainMinutesTextView: TextView by lazy {
-        findViewById(R.id.remainMinutesTextView)
-    }
-    private val remainSecondsTextView: TextView by lazy {
-        findViewById(R.id.remainSecondsTextView)
-    }
-    private val seekBar: SeekBar by lazy {
-        findViewById(R.id.seekBar)
-    }
-
-    private val soundPool = SoundPool.Builder().build()
-
-    private var currentCountDownTimer: CountDownTimer? = null
-    private var tickingSoundId: Int? = null
-    private var bellSoundId: Int? = null
+    // ViewPager를 통해 보여줄 View들을 담을 리스트
+    val viewList = ArrayList<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        bindViews()
-        initSounds()
-    }
+        val view1 = layoutInflater.inflate(R.layout.view1, null)
+        val view2 = layoutInflater.inflate(R.layout.view2, null)
+        val view3 = layoutInflater.inflate(R.layout.view3, null)
+        val view4 = layoutInflater.inflate(R.layout.view1, null)
+        val view5 = layoutInflater.inflate(R.layout.view2, null)
+        val view6 = layoutInflater.inflate(R.layout.view3, null)
 
-    override fun onResume() {
-        super.onResume()
-        soundPool.autoResume()
-    }
+        viewList.add(view1)
+        viewList.add(view2)
+        viewList.add(view3)
+        viewList.add(view4)
+        viewList.add(view5)
+        viewList.add(view6)
 
-    override fun onPause() {
-        super.onPause()
-        soundPool.autoPause()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        soundPool.release()
-    }
-
-    private fun bindViews() {
-        seekBar.setOnSeekBarChangeListener(
-            object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    if (fromUser) {
-                        updateRemainTime(progress * 60 * 1000L)
-                    }
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                    stopCountDown()
-                }
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                    seekBar ?: return
-
-                    if (seekBar.progress == 0) {
-                        stopCountDown()
-                    } else {
-                        startCountDown()
-                    }
-                }
-            }
-        )
-    }
-
-    private fun initSounds() {
-        tickingSoundId = soundPool.load(this, R.raw.timer_ticking, 1)
-        bellSoundId = soundPool.load(this, R.raw.timer_bell, 1)
-    }
-
-    private fun createCountDownTimer(initialMillis: Long) =
-        object : CountDownTimer(initialMillis, 1000L) {
-            override fun onTick(millisUntilFinished: Long) {
-                updateRemainTime(millisUntilFinished)
-                updateSeekBar(millisUntilFinished)
+        val adapter = object : PagerAdapter() {
+            //ViewPager가 보여줄 View의 개수
+            override fun getCount(): Int {
+                return viewList.size
             }
 
-            override fun onFinish() {
-                completeCountDown()
+            // ViewPager가 보여줄 화면 View를 반환하는 메서드
+            override fun instantiateItem(container: ViewGroup, position: Int): Any {
+                pager1.addView(viewList[position])
+                return viewList[position]
+            }
+
+            // instantiateItem이 반환한 객체를 화면으로 사용할 것인가를 검사하는 메서드
+            override fun isViewFromObject(view: View, obj: Any): Boolean {
+                return view == obj
+            }
+
+            // 사라지는 View 객체를 소멸하는 메서드
+            override fun destroyItem(container: ViewGroup, position: Int, obj: Any) {
+                pager1.removeView(obj as View)
             }
         }
 
-    private fun startCountDown() {
-        currentCountDownTimer = createCountDownTimer(seekBar.progress * 60 * 1000L)
-        currentCountDownTimer?.start()
+        pager1.adapter = adapter
 
-        tickingSoundId?.let { soundId ->
-            soundPool.play(soundId, 1F, 1F, 0, -1, 1F)
+        val listener = object : ViewPager.OnPageChangeListener{
+
+            // 페이지의 스크롤 상태가 변경되었을 때 호출되는 메서드
+            override fun onPageScrollStateChanged(state: Int) {
+
+            }
+
+            // 페이지의 스크롤이 끝났을 때 호출되는 메서드
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                textView.text = "$position 번째 View가 나타났습니다."
+            }
+
+            // 페이지를 선택했을 때 호출되는 메서드
+            override fun onPageSelected(position: Int) {
+
+            }
         }
-    }
-
-    private fun stopCountDown() {
-        currentCountDownTimer?.cancel()
-        currentCountDownTimer = null
-        soundPool.autoPause()
-    }
-
-    private fun completeCountDown() {
-        updateRemainTime(0)
-        updateSeekBar(0)
-
-        soundPool.autoPause()
-        bellSoundId?.let { soundId ->
-            soundPool.play(soundId, 1F, 1F, 0, 0, 1F)
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun updateRemainTime(remainMillis: Long) {
-        val remainSeconds = remainMillis / 1000
-
-        remainMinutesTextView.text = "%02d'".format(remainSeconds / 60)
-        remainSecondsTextView.text = "%02d".format(remainSeconds % 60)
-    }
-
-    private fun updateSeekBar(remainMillis: Long) {
-        seekBar.progress = (remainMillis / 1000 / 60).toInt()
+        pager1.addOnPageChangeListener(listener)
     }
 }
