@@ -12,17 +12,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Chronometer
-import androidx.annotation.NonNull
+import android.widget.Chronometer.OnChronometerTickListener
 import androidx.annotation.Nullable
-import androidx.appcompat.widget.AppCompatButton
-import androidx.databinding.adapters.ViewBindingAdapter.setOnClick
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_stopwatch.*
 import kr.co.gooroomeelite.R
 import kr.co.gooroomeelite.entity.Subject
-import kotlin.math.truncate
-
-
 
 
 // 오타 줄이기 위해 상수 사용시 아래와 같이 선언 후 사용
@@ -78,15 +72,34 @@ class StopwatchFragment : Fragment() {
 
 
         // 현재 타이머 값 표시 (stopwatch 포멧 문자 타입으로 변환)
-        stopwatch?.setFormat("00:%s")
+        /*stopwatch?.setFormat("00:%s")
         stopwatch?.setOnChronometerTickListener { stopwatch ->
             val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
             if (elapsedMillis > 3600000L) {
                 stopwatch.format = "0%s"
             } else {
-                stopwatch.format = "00:%s"
+                stopwatch.format = "00 : %s"
             }
+        }*/
+
+
+        // 현재 타이머 값 표시 (시, 분, 초 사이 공백 넣기)
+        stopwatch?.setOnChronometerTickListener{ stopwatch ->
+            val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
+            val h = (elapsedMillis / 3600000).toInt()
+            val m = (elapsedMillis - h * 3600000).toInt() / 60000
+            val s = (elapsedMillis - h * 3600000 - m * 60000).toInt() / 1000
+            val hh = if (h < 10) "0$h" else h.toString() + ""
+            val mm = if (m < 10) "0$m" else m.toString() + ""
+            val ss = if (s < 10) "0$s" else s.toString() + ""
+            stopwatch.format = "$hh : $mm : $ss"
         }
+        stopwatch!!.base = SystemClock.elapsedRealtime()
+        stopwatch!!.start()
+
+
+
+
 
         /*// buttonStartPause 클릭시 상세동작
         buttonStartPause?.setOnClickListener(View.OnClickListener {                                     // buttonStartPause 클릭시
