@@ -15,8 +15,15 @@ import android.widget.Chronometer
 import android.widget.Chronometer.OnChronometerTickListener
 import androidx.annotation.Nullable
 import androidx.fragment.app.Fragment
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.android.synthetic.main.fragment_stopwatch.*
 import kr.co.gooroomeelite.R
 import kr.co.gooroomeelite.entity.Subject
+import kr.co.gooroomeelite.model.ContentDTO
+import kr.co.gooroomeelite.utils.LoginUtils
+import kotlin.math.truncate
+
+
 
 
 // 오타 줄이기 위해 상수 사용시 아래와 같이 선언 후 사용
@@ -38,6 +45,7 @@ class StopwatchFragment : Fragment() {
     private var running = false                                                                     // 스탑워치 실행중
     private var curTime: Long = 0                                                                   // 공부 진행시간
 
+    var firestore : FirebaseFirestore? = null
     val intent = Intent()
 
     @SuppressLint("ClickableViewAccessibility")
@@ -50,6 +58,7 @@ class StopwatchFragment : Fragment() {
         val v = inflater.inflate(R.layout.fragment_stopwatch, container, false)
         val subject = arguments?.getSerializable("subject")
         val documentId = arguments?.getString("documentId")
+        val firestore = FirebaseFirestore.getInstance()
         stopwatch = v.findViewById((R.id.stopwatch))
         stopwatch?.setBase(SystemClock.elapsedRealtime())
 
@@ -72,31 +81,31 @@ class StopwatchFragment : Fragment() {
 
 
         // 현재 타이머 값 표시 (stopwatch 포멧 문자 타입으로 변환)
-        /*stopwatch?.setFormat("00:%s")
+        stopwatch?.setFormat("00:%s")
         stopwatch?.setOnChronometerTickListener { stopwatch ->
             val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
             if (elapsedMillis > 3600000L) {
-                stopwatch.format = "0%s"
+                stopwatch.format = "00:%s"
             } else {
-                stopwatch.format = "00 : %s"
+                stopwatch.format = "00:%s"
             }
-        }*/
-
-
-        // 현재 타이머 값 표시 (시, 분, 초 사이 공백 넣기)
-        stopwatch?.setOnChronometerTickListener{ stopwatch ->
-            val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
-            val h = (elapsedMillis / 3600000).toInt()
-            val m = (elapsedMillis - h * 3600000).toInt() / 60000
-            val s = (elapsedMillis - h * 3600000 - m * 60000).toInt() / 1000
-            val hh = if (h < 10) "0$h" else h.toString() + ""
-            val mm = if (m < 10) "0$m" else m.toString() + ""
-            val ss = if (s < 10) "0$s" else s.toString() + ""
-            stopwatch.format = "$hh : $mm : $ss"
         }
-        stopwatch!!.base = SystemClock.elapsedRealtime()
-        stopwatch!!.start()
 
+
+//        // 시간이 1초 느림
+//        // 현재 타이머 값 표시 (시, 분, 초 사이 공백 넣기)
+//        stopwatch?.setOnChronometerTickListener{ stopwatch ->
+//            val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
+//            val h = (elapsedMillis / 3600000).toInt()
+//            val m = (elapsedMillis - h * 3600000).toInt() / 60000
+//            val s = (elapsedMillis - h * 3600000 - m * 60000).toInt() / 1000
+//            val hh = if (h < 10) "0$h" else h.toString() + ""
+//            val mm = if (m < 10) "0$m" else m.toString() + ""
+//            val ss = if (s < 10) "0$s" else s.toString() + ""
+//            stopwatch.format = "$hh : $mm : $ss"
+//        }
+//        stopwatch!!.base = SystemClock.elapsedRealtime()
+//        stopwatch!!.start()
 
 
 
@@ -165,16 +174,18 @@ class StopwatchFragment : Fragment() {
         })
 
         buttonEnd.setOnClickListener(View.OnClickListener {
+            studytimeupdate()
             //기록 종료를 눌렀을 때 해야하는 이벤트 처리
-            Log.e("[TEST23]", "${subject.toString()} ${documentId}")
             val intent = Intent(requireContext(), StudyEndActivity::class.java)
             intent.putExtra(STUDY_TIME, curTime)
             intent.putExtra("subject", subject)
-            intent.putExtra("documentId", documentId)
             startActivity(intent)
-
             resetStopwatch()
+            //파이어베이스에 현재 공부한 시간 업데이트
+            activity?.finish()
+
         })
+
         // }
 
         //
@@ -309,6 +320,16 @@ class StopwatchFragment : Fragment() {
         // 어떤 클래스의 모든 인스턴스가 공유하는 객체를 만들고 싶을 때 사용 (java - static 효과)
         private const val SW_PREFS = "sWPrefs"
         private const val CUR_TIME = "curTime"
+    }
+
+    private fun studytimeupdate() {
+        firestore?.collection("users")?.document(LoginUtils.getUid()!!)?.get()
+            ?.addOnSuccessListener {
+                val subject = it.toObject(ContentDTO::class.java)
+                val studytime = curTime.toInt()
+                subject?.todaystudytime = subject?.todaystudytime?.plus(studytime)
+                firestore!!.collection("users").document(LoginUtils.getUid()!!).update("todaystudytime",subject?.todaystudytime)
+            }
     }
 }
 
@@ -494,4 +515,3 @@ class StopwatchFragment : Fragment() {
 }
 
  */
-
