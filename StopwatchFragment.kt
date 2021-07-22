@@ -15,12 +15,15 @@ import android.widget.Chronometer
 import android.widget.Chronometer.OnChronometerTickListener
 import androidx.annotation.Nullable
 import androidx.fragment.app.Fragment
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.fragment_stopwatch.*
 import kr.co.gooroomeelite.R
 import kr.co.gooroomeelite.entity.Subject
 import kr.co.gooroomeelite.model.ContentDTO
 import kr.co.gooroomeelite.utils.LoginUtils
+import java.util.*
 import kotlin.math.truncate
 
 
@@ -44,6 +47,9 @@ class StopwatchFragment : Fragment() {
     private var pauseOffset: Long = 0
     private var running = false                                                                     // 스탑워치 실행중
     private var curTime: Long = 0                                                                   // 공부 진행시간
+    var hour : Int = 0
+    var minute : Int = 0
+    var second : Int = 0
 
     var firestore : FirebaseFirestore? = null
     val intent = Intent()
@@ -59,11 +65,14 @@ class StopwatchFragment : Fragment() {
         val subject = arguments?.getSerializable("subject")
         val documentId = arguments?.getString("documentId")
         val firestore = FirebaseFirestore.getInstance()
+
+        Log.d("TTTTTT","${subject}")
         stopwatch = v.findViewById((R.id.stopwatch))
-        stopwatch?.setBase(SystemClock.elapsedRealtime())
+        stopwatch?.base = SystemClock.elapsedRealtime()
 
         buttonStartPause = v.findViewById(R.id.btn_start)   //시작
-        buttonEnd = v.findViewById(R.id.btn_end)    //종료
+        buttonEnd = v.findViewById(R.id.btn_end)    //기록 종료
+
         buttonRestart = v.findViewById(R.id.btn_restart)    //다시시작
         buttonFinish = v.findViewById(R.id.btn_finish)  //일시정지
 
@@ -80,16 +89,25 @@ class StopwatchFragment : Fragment() {
         buttonFinish.performClick()
 
 
-        // 현재 타이머 값 표시 (stopwatch 포멧 문자 타입으로 변환)
-        stopwatch?.setFormat("00:%s")
-        stopwatch?.setOnChronometerTickListener { stopwatch ->
+
+
+
+//        // 현재 타이머 값 표시 (시, 분, 초 사이 공백 넣기)
+        stopwatch?.setOnChronometerTickListener{ stopwatch ->
             val elapsedMillis = SystemClock.elapsedRealtime() - stopwatch!!.base
-            if (elapsedMillis > 3600000L) {
-                stopwatch.format = "00:%s"
-            } else {
-                stopwatch.format = "00:%s"
-            }
+            val h = (elapsedMillis / 3600000).toInt()
+            val m = (elapsedMillis - h * 3600000).toInt() / 60000
+            val s = (elapsedMillis - h * 3600000 - m * 60000).toInt() / 1000
+            val hh = if (h < 10) "0$h" else h.toString() + ""
+            val mm = if (m < 10) "0$m" else m.toString() + ""
+            val ss = if (s < 10) "0$s" else s.toString() + ""
+            stopwatch.format = "$hh : $mm : $ss"
+            hour = h
+            minute = m
+            second = s
         }
+        stopwatch!!.base = SystemClock.elapsedRealtime()
+        //stopwatch!!.start() // <- onCreateView 내에 좌측 코드 추가해서 자동시작, 2초 늦게 시작하는 문제 발생함
 
 
 //        // 시간이 1초 느림
@@ -173,14 +191,19 @@ class StopwatchFragment : Fragment() {
             startStopwatch()
         })
 
-        buttonEnd.setOnClickListener(View.OnClickListener {
+        buttonEnd.setOnClickListener(View.OnClickListener {  // -------------------------------------------
             studytimeupdate()
+            timestamp()
             //기록 종료를 눌렀을 때 해야하는 이벤트 처리
             val intent = Intent(requireContext(), StudyEndActivity::class.java)
+
             intent.putExtra(STUDY_TIME, curTime)
             intent.putExtra("subject", subject)
+            intent.putExtra("hour",hour)
+            intent.putExtra("minute",minute)
             startActivity(intent)
             resetStopwatch()
+
             //파이어베이스에 현재 공부한 시간 업데이트
             activity?.finish()
 
@@ -243,7 +266,9 @@ class StopwatchFragment : Fragment() {
             // if은 true 여부 판별, true일 경우 안의 내용 실행 (이 경우 true가 아닐경우 실행)
             // running 앞에 !는 반대로 이해 -> true면 false false면 true로 비교
             curTime =
-                SystemClock.elapsedRealtime() - pauseOffset                                             // 스탑워치 진행 시간 계산식
+                SystemClock.elapsedRealtime() - pauseOffset  //현재 시간 -  pauseOffset : 동작시간 - 시작시간
+
+            // 스탑워치 진행 시간 계산식
             stopwatch!!.base =
                 curTime                                                                                  //  stopwatch!!.base에 curTime에 넣은 실시간 셋팅
             stopwatch!!.start()                                                                         // 스탑워치 시작 함수 실행
@@ -264,7 +289,6 @@ class StopwatchFragment : Fragment() {
 
             //buttonStartPause!!.setBackgroundDrawable(ContextCompat.getDrawable(Context, R.drawable.ic_btn_restart))   //XML Selector 사용
         }
-        val d = Log.d("aaa2", pauseOffset.toString())
     }
 
 
@@ -284,8 +308,8 @@ class StopwatchFragment : Fragment() {
 // 저장 파일 위치 : data/data/(package_name)/shared_prefs/SharedPreference
 // 다른 액티비티가 화면을 완전히 가리게 되면, 호출
 // 유저가 다시 해당 액티비티를 호출하면 데이터가 다시 복원될 수 있는 상태
-    override fun onStop() {
-        super.onStop()
+    override fun onPause() {
+        super.onPause()
         val prefs = requireActivity().getSharedPreferences(                              // getPreference() 함수 : 자동으로 액티비티 이름의 파일 내에 저장함
                 SW_PREFS,
                 Context.MODE_PRIVATE                                              // Mode = 접근 권한, PRIVATE = 해당 앱에서만 접근 가능하게 해줌
@@ -298,7 +322,6 @@ class StopwatchFragment : Fragment() {
 
         if (stopwatch != null) {
         }
-        Log.d("aaa3", curTime.toString())
     }
 
 
@@ -325,21 +348,110 @@ class StopwatchFragment : Fragment() {
     private fun studytimeupdate() {
         firestore?.collection("users")?.document(LoginUtils.getUid()!!)?.get()
             ?.addOnSuccessListener {
-                val subject = it.toObject(ContentDTO::class.java)
+                val todaystudy = it.toObject(ContentDTO::class.java)
+                Log.d("TTTTT", curTime.toString() + "돌아가고 있는 스톱워치 시간")
                 val studytime = curTime.toInt()
-                subject?.todaystudytime = subject?.todaystudytime?.plus(studytime)
-                firestore!!.collection("users").document(LoginUtils.getUid()!!).update("todaystudytime",subject?.todaystudytime)
+                val totalstudy =  todaystudy?.todaystudytime?.plus(studytime)
+                Log.d("TTTTT","${totalstudy}")
+                Log.d("TTTTTstudytime","${studytime}")
+                val addStudyTime: Int = studytime
+                Log.d("TTTTTstudytime","${addStudyTime}")
+                firestore!!.collection("users").document(LoginUtils.getUid()!!).update("todaystudytime",totalstudy)
+//                firestore!!.collection("subject").document(LoginUtils.getUid()!!).update("addStudyTime",addStudyTime)
             }
     }
+//    buttonStartPause = v.findViewById(R.id.btn_start)   //시작
+//    buttonEnd = v.findViewById(R.id.btn_end)    //기록 종료
+
+    private fun timestamp(){
+        val subject = arguments?.getSerializable("subject") as kr.co.gooroomeelite.entity.Subject
+
+        Log.d("Subject","1")
+        val subjectStudyTime = subject.studytime //총 공부시간
+//        hour = h
+//        minute = m
+//        second = s
+        val plusStudyTime : Int = subjectStudyTime.plus(minute.toInt()) //과목별 공부시간 + 스톱워치 기록 (총시간) 1초가 30
+        Log.d("timetime",hour.toString())
+        Log.d("timetime",minute.toString())
+        Log.d("timetime",second.toString())
+//        m- ((a/360000)*360000)-((a/360000)*360000/60000)*60000)/1000
+        val daytime = System.currentTimeMillis() //오늘 날짜,시간
+        val allStudyTime = hashMapOf("allstudytime" to plusStudyTime)
+        Log.d("Subject", plusStudyTime.toString())
+        Log.d("Subject", subject.name.toString())
+
+        FirebaseFirestore
+            .getInstance()
+            .collection("subject")
+            .whereEqualTo("uid", LoginUtils.getUid())
+            .whereEqualTo("name", subject.name.toString())
+            .get().addOnSuccessListener {
+                Log.d("Subject", "2")
+                val subjectId = it.documents.get(0).id
+                val subject = it.toObjects(Subject::class.java)
+                Log.d("Subject",subject[0].name + " name")
+                Log.d("Subject",subject[0].color + " color")
+                Log.d("Subject","${subject}")
+                FirebaseFirestore
+                    .getInstance()
+                    .collection("subject")
+                    .document(subjectId)
+                    .update("daytime",daytime)
+                FirebaseFirestore
+                    .getInstance()
+                    .collection("subject")
+                    .document(subjectId)
+                    .update("plusStudyTime",plusStudyTime.toInt())
+                FirebaseFirestore
+                    .getInstance()
+                    .collection("subject")
+                    .document(subjectId)
+                    .update("studytime",plusStudyTime.toInt())//30 + 50 + 125
+                Log.d("Subject",plusStudyTime.toString() + " studytime")
+            }
+
+    //                    hashMapOf("plusStudyTime" to plusStudytime) as Map<String, Any>
+//                )
+//            }
+//        firestore?.collection("subject")?.whereEqualTo("name",subject.name.toString())?.get()?.addOnSuccessListener {
+//            Log.d("Subject","2")
+//            firestore!!.collection("subject").document(LoginUtils.getUid()!!).update("plusStudyTime",plusStudyTime)
+//        }?.addOnFailureListener {
+//            Log.d("Subject","3")
+//        }
+
+//        firestore?.collection("subject")?.document(LoginUtils.getUid()!!)?.update("name", FieldValue.arrayUnion("allStudyTime"))
+//        firestore!!.collection("subject")?.document(LoginUtils.getUid()!!)?.update("allStudyTime",allStudyTime)
+//        firestore?.collection("subject")?.document(LoginUtils.getUid()!!)?.update("daytime", FieldValue.arrayUnion("allStudyTime"))
+//        firestore!!.collection("subject")?.document(LoginUtils.getUid()!!)?.update("allStudyTime",allStudyTime)
+
+//        FirebaseFirestore
+//            .getInstance()
+//            .collection("subject")
+//            .document(LoginUtils.getUid()!!)
+//            .update("plusStudyTime",plusStudyTime)
+//        Log.d("Subject", "2")
+//
+//        FirebaseDatabase
+//            .getInstance()
+//            .getReference()
+//            .child("subject")
+//            .child(()
+//            .setValue(plusStudyTime)
+//        Log.d("Subject", "2")
+
+
+//            firestore?.collection("subject")?.document(LoginUtils.getUid()!!)?.set(allStudyTime)?.addOnSuccessListener { Log.d("Subject", "DocumentSnapshot successfully written!") }?.addOnFailureListener { e -> Log.w("Subject", "Error writing document", e) }
+//            firestore?.collection("subject")?.document(LoginUtils.getUid()!!)?.update("plusStudyTime",plusStudyTime)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopwatch?.stop()
+
+    }
 }
-
-
-
-
-
-
-
-
 
 
 
