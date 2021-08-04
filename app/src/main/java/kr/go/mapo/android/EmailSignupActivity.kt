@@ -3,10 +3,15 @@ package kr.go.mapo.android
 import android.app.Activity
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.telecom.Call
 import android.view.View
 import android.widget.EditText
+import kotlinx.android.synthetic.main.activity_email_signup.*
+import retrofit2.Response
+import java.util.*
+import javax.security.auth.callback.Callback
 
-lateinit var usernameView: EditText
+lateinit var usernameView : EditText
 lateinit var userPassword1View : EditText
 lateinit var userPassword2View : EditText
 
@@ -17,7 +22,26 @@ class EmailSignupActivity : AppCompatActivity() {
 
         initView(this@EmailSignupActivity)
 
+        /*register.setOnClickListener {
+            (application as MasterApplication).service.getStudentsList().enqueue(object :
+                    Callback<AttayList<PersonFromServer>>{
+                        override fun onFailure(call: Call<ArrayList<PersonFromServer>>, t:Throwable){
+                        }
+
+                        override fun onResponse(
+                        call: Call<ArrayList<PersonFromServer>>,
+                        response: Response<ArrayList<PersonFromServer>>
+                        ) {
+                        }
+                    })
+        }*/
     }
+
+    /*fun setupListenr(){
+        registerBtn.setOnClickListener{
+
+        }
+    }*/
 
     // ID, PW 가져올 수 있는 기능 구현
     fun initView(activity: Activity){
@@ -38,6 +62,6 @@ class EmailSignupActivity : AppCompatActivity() {
         return userPassword2View.text.toString()
     }
 
-    // 레트로핏 사용 예정
+    // 레트로핏 사용 예정정
 
 }
