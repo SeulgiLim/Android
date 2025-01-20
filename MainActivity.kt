@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 숫자 버튼 눌렀을 때 함수 호출
+    //
     private fun numberButtonClicked(number: String){
 
 
